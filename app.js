@@ -5,9 +5,17 @@ const path = require('path');
 const cookieParser = require('cookie-parser');
 const logger = require('morgan');
 
+// API Keys
+const secrets = require('./secrets.json');
+
 // API modules
 const Twitter = require('twitter');
-const TwitterStreamChannels = require('twitter-stream-channels');
+const twitter = new Twitter({
+    consumer_key: secrets.consumer_key,
+    consumer_secret: secrets.consumer_secret,
+    access_token_key: secrets.access_token,
+    access_token_secret: secrets.access_token_secret
+});
 
 const indexRouter = require('./routes/index');
 
@@ -23,8 +31,101 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Instance and utility modules
+// App states
+const state = {};
 
+// Instance and utility modules
+function createBaseGraphObject() {
+    return {
+        type: 'bar',
+        data: {
+            labels: [], // populate labels
+            datasets: [{
+                label: '# of Occurences',
+                data: [], // populate data
+                borderWidth: 1
+            }]
+        },
+        options: {
+            title: {
+                display: true,
+                text: 'Distribution of words tweeted about topic'
+            },
+            scales: {
+                yAxes: [{
+                    ticks: {
+                        beginAtZero:true
+                    }
+                }]
+            }
+        }
+    };
+}
+
+const poller = require('./poller.js');
+const analysis = require('./analysis.js');
+poller.initialise(twitter, secrets);
+
+// Poll for top 10 trends
+doWork();
+/*setInterval(function(){
+    doWork(); // I need to not poll very often
+}, 1000 * 1000);*/
+
+
+function doWork() {
+    poller.pollTrends(10, function(trends) {
+        state.trends = trends;
+
+        // Stream the top 10 trends
+        poller.pollStream(trends, function (channel, tweetText) {
+            // On each streamed tweet...
+
+            // Check the channel, initialise if not exist
+            if (state[channel] === undefined) {
+                state[channel] = {};
+                state[channel].tweets = [];
+                state[channel].nounGraph = createBaseGraphObject();
+                state[channel].verbGraph = createBaseGraphObject();
+
+            }
+            // Push the tweet onto the raw tweets
+            state[channel].tweets.push(tweetText);
+
+            // Perform analysis
+            const nounsAnalysis = analysis.calculateOccurences(analysis.stripNouns(tweetText));
+            const verbsAnalysis = analysis.calculateOccurences(analysis.stripVerbs(tweetText));
+            combineCount(state[channel].nounGraph, nounsAnalysis);
+            combineCount(state[channel].verbGraph, verbsAnalysis);
+        });
+    });
+}
+
+function combineCount(graph, instance) {
+    if (instance === undefined || instance.labels === undefined || instance.data === undefined) {
+        console.log(instance);
+        return;
+    }
+    for(var x=0; x<instance.labels.length; x++) {
+        // Find if the word already exists in the total graph
+        const index = graph.data.labels.indexOf(instance.labels[x]);
+        if (index !== -1) {
+            // Already exists; add to the count
+            graph.data.datasets[0].data[index] += instance.data[x];
+        } else {
+            // Does not exist, add to the graph data and label arrays
+            graph.data.labels.push(instance.labels[x]);
+            graph.data.datasets[0].data.push(instance.data[x]);
+        }
+    }
+}
+
+var times = 0;
+setInterval(function(){
+    times++;
+    var _state = state;
+    console.log(1000 * times+" seconds in");
+}, 10000);
 
 // ---== Routing ==---
 
