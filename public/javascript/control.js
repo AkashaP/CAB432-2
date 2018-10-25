@@ -16,6 +16,7 @@ const activeTag = $("#activetag");
 const vocabVisualiserVerb = document.getElementById("vocabVisualiserVerb");
 const vocabVisualiserNoun = document.getElementById("vocabVisualiserNoun");
 const views = $(".view");
+var streamInterval;
 // Initialise element states
 
 vocabVisualiserVerb.setAttribute("width", $(window).width());
@@ -31,22 +32,19 @@ for (var i = 1; i < views.length; i++) {
 //var trends = retrieveTrends();
 
 // Initial populate trends
-retrieveTrends(function (trends) {
-    /*retrieveTweets(function(data) {
-            console.log(data);
-            graphVocabVisualiserNoun(vocabVisualiserNoun, data.nouns);
-            graphVocabVisualiserVerb(vocabVisualiserVerb, data.verbs);
-        });*/
-   
-   populateTrends(trends);
-   
-   setInterval(function(){
-    
-        
-    
-   }, 10000); 
-    
-});
+controlTrends();
+function controlTrends() {
+    retrieveTrends(function (trends) {
+        /*retrieveTweets(function(data) {
+                console.log(data);
+                graphVocabVisualiserNoun(vocabVisualiserNoun, data.nouns);
+                graphVocabVisualiserVerb(vocabVisualiserVerb, data.verbs);
+            });*/
+
+        populateTrends(trends);
+
+    });
+}
 
 var trends;
 
@@ -83,8 +81,22 @@ function populateTrends(_trends) {
 function navSubmitTag(tagIndex) {
 	activeTag.text(trends[tagIndex]);
 	select.hide(animHideShowDuration);
-    
-    retrieveTweets(trends[tagIndex], function(callback) {
+
+	if (streamInterval !== undefined)
+	    clearInterval(streamInterval);
+
+    controlTweets(trends[tagIndex]);
+
+    streamInterval = setInterval(function(){
+
+        controlTweets(trends[tagIndex]);
+
+    }, 1000);
+}
+
+
+function controlTweets(trend) {
+    retrieveTweets(trend, function(callback) {
         var r = graphVocabVisualiserNoun(vocabVisualiserNoun, callback.nounGraph);
         r = graphVocabVisualiserVerb(vocabVisualiserVerb, callback.verbGraph) || r;
         if (!r) {

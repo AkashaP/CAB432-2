@@ -57,6 +57,9 @@ function createBaseGraphObject() {
                         beginAtZero:true
                     }
                 }]
+            },
+            animation: {
+                duration: 0
             }
         }
     };
@@ -70,11 +73,12 @@ poller.initialise(twitter, secrets);
 doWork();
 /*setInterval(function(){
     doWork(); // I need to not poll very often
+    // I need to poll for trends, then close the streams of things i no longer need. Not necessary for demo.
 }, 1000 * 1000);*/
 
 
 function doWork() {
-    poller.pollTrends(20, function(trends) {
+    poller.pollTrends(25, function(trends) {
         state.trends = trends;
 
         // Stream the top 10 trends
