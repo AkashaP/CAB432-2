@@ -1,8 +1,46 @@
 body {
-  padding: 50px;
-  font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
+	font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
+    top:0;
+    left:0;
+    height:100%;
+    width:100%;
 }
 
 a {
   color: #00B7FF;
+}
+
+/* ---== Class Styling ==--- */
+
+.view {
+	text-align: center;
+}
+
+.trendcard {
+	padding: 0.5em;
+}
+
+/* ---== ID Styling ==--- */
+
+#select {
+    position: absolute;
+    top: 1em;
+    left: 50%;
+    transform: translateX(-50%);/* translateY(-50%);*/
+    max-height: 75%;
+}
+
+#trending {
+	position: relative;
+    overflow-y: auto;
+    text-align: center;
+    max-height: 75vh;
+}
+
+#selectcontrols {
+	padding: 1em;
+}
+
+#selectcontrols button {
+	width: 100%;
 }

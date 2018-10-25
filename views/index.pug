@@ -1,5 +1,52 @@
 extends layout
 
 block content
-  h1= title
-  p Welcome to #{title}
+	block pre_scripts
+		script(type='text/javascript'  src='/javascript/Chart.bundle.min.js')
+		script(type='text/javascript'  src='/javascript/chart_model.js')
+		script(type='text/javascript'  src='/javascript/server_model.js')
+	div#visualisation.screen
+		
+		// Nav bar
+		
+		nav.navbar.navbar-expand-lg.navbar-light.bg-light
+			ul.navbar-nav
+				p.navbar-brand Vocab Visualiser
+				li.nav-item.active
+					a#activetag.h6.nav-link(href="javascript:navTagSelection()") Nothing Selected
+				// li.nav-item.active
+				// 	a#activetag.nav-link(href="javascript:navView(0)") Mood Meter
+				li.nav-item.active
+					a#activetag.nav-link(href="javascript:navView(0)") Nouns
+				li.nav-item.active
+					a#activetag.nav-link(href="javascript:navView(1)") Verbs
+				// li.nav-item.active
+				// 	a#activetag.nav-link(href="javascript:navView(3)") News Nucleus
+		div#statistics
+			// div#moodarea.view
+			//	p.h3 Mood Meter
+			//	p.h5 How do people feel about topic?
+			//	canvas#moodmeter
+			div#vocabareanoun.view
+				p.h3 Vocab Visualiser (Nouns)
+				p.h5 What nouns do people associate about topic?
+				canvas#vocabVisualiserNoun
+			div#vocabareaverb.view
+				p.h3 Vocab Visualiser (Verbs)
+				p.h5 What verbs do people associate about topic?
+				canvas#vocabVisualiserVerb
+			// div#newsarea.view
+			//	p.h3 Which countries are talking about topic in media?
+			//	canvas#newsNucleus
+
+	div#select.screen
+	
+		// Hash tag selection
+		
+		.h1 Select a trending hash
+		#trending
+			//a(href="javascript:navSubmitTag()") asdf
+		#selectcontrols
+			button.btn.btn-info Refresh
+	block post_scripts
+		script(type='text/javascript'  src='/javascript/control.js')

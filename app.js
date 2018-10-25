@@ -32,7 +32,7 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // App states
-const state = {};
+const state = {trends:[], data: {}, raw: { labels:[], counts:[] }};
 
 // Instance and utility modules
 function createBaseGraphObject() {
@@ -82,21 +82,21 @@ function doWork() {
             // On each streamed tweet...
 
             // Check the channel, initialise if not exist
-            if (state[channel] === undefined) {
-                state[channel] = {};
-                state[channel].tweets = [];
-                state[channel].nounGraph = createBaseGraphObject();
-                state[channel].verbGraph = createBaseGraphObject();
+            if (state.data[channel] === undefined) {
+                state.data[channel] = {};
+                state.data[channel].tweets = [];
+                state.data[channel].nounGraph = createBaseGraphObject();
+                state.data[channel].verbGraph = createBaseGraphObject();
 
             }
             // Push the tweet onto the raw tweets
-            state[channel].tweets.push(tweetText);
+            state.data[channel].tweets.push(tweetText);
 
             // Perform analysis
             const nounsAnalysis = analysis.calculateOccurences(analysis.stripNouns(tweetText));
             const verbsAnalysis = analysis.calculateOccurences(analysis.stripVerbs(tweetText));
-            combineCount(state[channel].nounGraph, nounsAnalysis);
-            combineCount(state[channel].verbGraph, verbsAnalysis);
+            combineCount(state.data[channel].nounGraph, nounsAnalysis);
+            combineCount(state.data[channel].verbGraph, verbsAnalysis);
         });
     });
 }
@@ -112,19 +112,33 @@ function combineCount(graph, instance) {
         if (index !== -1) {
             // Already exists; add to the count
             graph.data.datasets[0].data[index] += instance.data[x];
+            state.raw.counts[index] += instance.data[x];
         } else {
             // Does not exist, add to the graph data and label arrays
             graph.data.labels.push(instance.labels[x]);
             graph.data.datasets[0].data.push(instance.data[x]);
+            state.raw.labels.push(instance.labels[x])
+            state.raw.counts.push(instance.data[x]);
         }
     }
 }
+
+/*var changes;
+function calculateChanges() {
+    if (changes == undefined) {
+        changes = JSON.parse(JSON.stringify(state.raw));
+        return changes;
+    } else {
+        // Calculate changes
+    }
+
+}*/
 
 var times = 0;
 setInterval(function(){
     times++;
     var _state = state;
-    console.log(1000 * times+" seconds in");
+    console.log(10 * times+" seconds in");
 }, 10000);
 
 // ---== Routing ==---
@@ -132,18 +146,26 @@ setInterval(function(){
 // Internal API setup
 
 app.use('/api/trends', function(req,res,next) {
-    console.log('Sending trends to client');
-    res.send(trends);
+    try {
+        console.log('Sending trends to client');
+        res.send(state.trends);
+    } catch (error) {
+        res.send(createError(400));
+    }
 });
 
 app.use('/api/analysis', function(req,res,next) {
-    console.log('client requests analysis of '+req.params);
-    if (req.params !== undefined && analysis[req.params.query] !== undefined) {
-        res.send(analysis[req.params.query]);
-        console.log('client requests analysis of '+req.params);
-    } else {
-        console.log('No query matching '+req.params);
-        res.send(analysis);
+    try {
+        console.log('client requests analysis of ' + req.query.id.toLowerCase());
+        if (req.query.id !== undefined && state.data[req.query.id.toLowerCase()] !== undefined) {
+            res.send(state.data[req.query.id.toLowerCase()]);
+            console.log('client requests analysis of ' + req.query.id.toLowerCase());
+        } else {
+            console.log('No query matching ' + req.query.id.toLowerCase());
+            res.send(state.data);
+        }
+    } catch (error) {
+        res.send(createError(400));
     }
 });
 

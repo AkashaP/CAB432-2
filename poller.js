@@ -13,7 +13,7 @@ module.exports.pollTrends = function (amount, callback) {
         console.log(_trends);
         const result = [];
         for (var x=0; x<_trends[0].trends.length && x < amount; x++) {
-            result.push(_trends[0].trends[x].query);
+            result.push(_trends[0].trends[x].name);
         }
 
         if (callback !== null && callback !== undefined && _trends !== null  && _trends[0].trends !== undefined && _trends !== undefined && _trends != "") {
@@ -39,5 +39,9 @@ module.exports.pollStream = function(channels, callback) {
         console.log(channel);
         callback(channel, tweet.text);
     });
+
+}
+
+module.exports.friendlyChannel = function(channel) {
 
 }
