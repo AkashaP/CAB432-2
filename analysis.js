@@ -31,3 +31,18 @@ module.exports.stripVerbs = function(text) {
     return wordTokenizer.tokenize(compromise(text).verbs().out('text').replace(/[^\w\s]|_/g, "")
         .replace(/\s+/g, " ").toLowerCase());
 }
+
+module.exports.sortGraph = function(labels, data) {
+    var list = [];
+    for (var j = 0; j < labels.length; j++)
+        list.push({'label': labels[j], 'data': data[j]});
+
+    list.sort(function(a, b) {
+        return (a.data < b.data);
+    });
+
+    for (var k = 0; k < list.length; k++) {
+        labels[k] = list[k].label;
+        data[k] = list[k].data;
+    }
+}

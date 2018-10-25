@@ -74,7 +74,7 @@ doWork();
 
 
 function doWork() {
-    poller.pollTrends(10, function(trends) {
+    poller.pollTrends(20, function(trends) {
         state.trends = trends;
 
         // Stream the top 10 trends
@@ -123,23 +123,18 @@ function combineCount(graph, instance) {
     }
 }
 
-/*var changes;
-function calculateChanges() {
-    if (changes == undefined) {
-        changes = JSON.parse(JSON.stringify(state.raw));
-        return changes;
-    } else {
-        // Calculate changes
-    }
-
-}*/
-
 var times = 0;
 setInterval(function(){
     times++;
     var _state = state;
     console.log(10 * times+" seconds in");
 }, 10000);
+
+function finaliseGraph(graphData) {
+    analysis.sortGraph(graphData.data.labels, graphData.data.datasets[0].data);
+    graphData.data.labels = graphData.data.labels.slice(0, 30);
+    graphData.data.datasets[0].data = graphData.data.datasets[0].data.slice(0, 30);
+}
 
 // ---== Routing ==---
 
@@ -148,7 +143,16 @@ setInterval(function(){
 app.use('/api/trends', function(req,res,next) {
     try {
         console.log('Sending trends to client');
-        res.send(state.trends);
+
+        // Trim off the trends that have no tweets
+        const clientTrends = [];
+        for (var x=0; x<state.trends.length; x++) {
+            //if (state.raw.labels.indexOf(state.trends[x]) !== -1) {
+            if (state.data[state.trends[x]] !== undefined) {
+                clientTrends.push(state.trends[x]);
+            }
+        }
+        res.send(clientTrends);
     } catch (error) {
         res.send(createError(400));
     }
@@ -158,7 +162,15 @@ app.use('/api/analysis', function(req,res,next) {
     try {
         console.log('client requests analysis of ' + req.query.id.toLowerCase());
         if (req.query.id !== undefined && state.data[req.query.id.toLowerCase()] !== undefined) {
-            res.send(state.data[req.query.id.toLowerCase()]);
+            var element = state.data[req.query.id.toLowerCase()];
+            element = JSON.parse(JSON.stringify(element));
+
+            finaliseGraph(element.nounGraph);
+            finaliseGraph(element.verbGraph);
+
+            // Reorder the data
+
+            res.send(element);
             console.log('client requests analysis of ' + req.query.id.toLowerCase());
         } else {
             console.log('No query matching ' + req.query.id.toLowerCase());

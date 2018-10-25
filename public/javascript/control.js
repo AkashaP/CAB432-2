@@ -85,8 +85,11 @@ function navSubmitTag(tagIndex) {
 	select.hide(animHideShowDuration);
     
     retrieveTweets(trends[tagIndex], function(callback) {
-        graphVocabVisualiserNoun(vocabVisualiserNoun, callback.nounGraph);
-        graphVocabVisualiserVerb(vocabVisualiserVerb, callback.verbGraph);
+        var r = graphVocabVisualiserNoun(vocabVisualiserNoun, callback.nounGraph);
+        r = graphVocabVisualiserVerb(vocabVisualiserVerb, callback.verbGraph) || r;
+        if (!r) {
+            console.log('no tweets for that');
+        }
     });
 }
 
