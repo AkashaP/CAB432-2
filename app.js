@@ -4,6 +4,7 @@ const express = require('express');
 const path = require('path');
 const cookieParser = require('cookie-parser');
 const logger = require('morgan');
+const zlib = require('zlib');
 
 // API Keys
 const secrets = require('./secrets.json');
@@ -71,15 +72,26 @@ poller.initialise(twitter, secrets);
 
 // Poll for top 10 trends
 doWork();
-/*setInterval(function(){
-    doWork(); // I need to not poll very often
-    // I need to poll for trends, then close the streams of things i no longer need. Not necessary for demo.
-}, 1000 * 1000);*/
+
+if (process.argv.indexOf('-norepoll') !== -1)
+    setInterval(function(){
+        doWork(); // I need to not poll very often
+        // I need to poll for trends, then close the streams of things i no longer need. Not necessary for demo.
+    }, 1000 * 1000);
 
 
 function doWork() {
     poller.pollTrends(25, function(trends) {
         state.trends = trends;
+
+        // Put trends to lower case and remove hashtag, so that they resolve to state.data[] correctly
+        for (var x=0; x<trends.length; x++) {
+            if(trends[x].charAt(0) === '#')
+            {
+                trends[x] = trends[x].substr(1);
+            }
+            trends[x] = trends[x].toLowerCase();
+        }
 
         // Stream the top 10 trends
         poller.pollStream(trends, function (channel, tweetText) {
@@ -133,11 +145,33 @@ setInterval(function(){
     var _state = state;
     console.log(10 * times+" seconds in");
 }, 10000);
+if (process.argv.indexOf('-notraffic') === -1){generateTraffic();}
 
 function finaliseGraph(graphData) {
     analysis.sortGraph(graphData.data.labels, graphData.data.datasets[0].data);
     graphData.data.labels = graphData.data.labels.slice(0, 30);
     graphData.data.datasets[0].data = graphData.data.datasets[0].data.slice(0, 30);
+}
+
+var mem = "";
+var cpu;
+function generateTraffic() {
+    for(var i=0; i<= 1e5; i++) { // about 40 mb
+        mem += ('Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.\n');
+    }
+    if (cpu !== undefined)
+        clearInterval(cpu);
+    cpu = setInterval(function(){
+
+        console.log('Compressing 40 MB: ' + mem.length);
+        // Compress 40 mb 20 times every 25 seconds
+        for(var x=0; x<20; x++) {
+            zlib.gzip(mem, function (error, result) {
+                console.log('Compressed 40 MB');
+            })
+        }
+        //zlib.inflate(zlib.deflate(new Buffer(mem, 'utf-8')))
+    }, 25000);
 }
 
 // ---== Routing ==---
@@ -154,9 +188,29 @@ app.use('/api/trends', function(req,res,next) {
             //if (state.raw.labels.indexOf(state.trends[x]) !== -1) {
             if (state.data[state.trends[x]] !== undefined) {
                 clientTrends.push(state.trends[x]);
+            } else {
+                console.log('no tweets for '+state.trends[x]);
             }
         }
         res.send(clientTrends);
+    } catch (error) {
+        res.send(createError(400));
+    }
+});
+
+app.use('/api/rawtrends', function(req,res,next) {
+    try {
+        console.log('Sending raw trends to client');
+        res.send(state.trends);
+    } catch (error) {
+        res.send(createError(400));
+    }
+});
+
+app.use('/api/state', function(req,res,next) {
+    try {
+        console.log('Sending state to client');
+        res.send(state);
     } catch (error) {
         res.send(createError(400));
     }
@@ -183,6 +237,25 @@ app.use('/api/analysis', function(req,res,next) {
     } catch (error) {
         res.send(createError(400));
     }
+});
+
+app.use('/api/unhealthy', function(req,res,next) {
+    if (process.argv.indexOf('-noscale') !== -1) {
+        res.send(createError(403));
+    }
+    // else let it timeout, make server think it's unhealthy
+});
+
+app.use('/api/traffic', function(req,res,next) {
+    generateTraffic();
+});
+
+app.use('/api/stoptraffic', function(req,res,next) {
+    try {
+        if (cpu !== undefined)
+            clearInterval(cpu);
+        res.send('success');
+    } catch (e){ res.send('failure'); }
 });
 
 app.use('/', indexRouter);
