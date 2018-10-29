@@ -145,7 +145,7 @@ setInterval(function(){
     var _state = state;
     console.log(10 * times+" seconds in");
 }, 10000);
-if (process.argv.indexOf('-notraffic') === -1){generateTraffic();}
+if (process.argv.indexOf('-traffic') !== -1){generateTraffic();}
 
 function finaliseGraph(graphData) {
     analysis.sortGraph(graphData.data.labels, graphData.data.datasets[0].data);

@@ -1,0 +1,14 @@
+#! /bin/bash
+
+curl -sL https://deb.nodesource.com/setup_8.x | sudo bash -
+apt-get update
+sudo apt-get install -y nodejs git-all
+cd /
+mkdir server
+cd server
+git clone "https://github.com/Draika/Twatch.git"
+cd ./Twatch
+echo '{"newsapisecret": "9c7d16ec50bf4dff95280dc2c941d646", "consumer_secret": "DaToVwpAdcHV7Bl2NuwOpdqk2AZJLBvaSA4X7uq47zF1VlPPTA", "consumer_key": "GN1Ep5zYGx4Jdk6wz4EuDEm5B", "access_token": "2746931437-5Tut1U60IS8dVK7hPupE3es2HAuPiwZkiVjRkM1", "access_token_secret": "TiZI6bSg5aJ6QP115doivIcJgFe12LWVgxHjbxeufXwBu"}'>./secrets.json
+npm install
+sudo iptables -t nat -A PREROUTING -i eth0 -p tcp --dport 80 -j REDIRECT --to-port 3000
+nodejs ./bin/www
