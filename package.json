@@ -17,5 +17,8 @@
     "sentiment": "^5.0.1",
     "twitter": "^1.7.1",
     "twitter-stream-channels": "^1.0.1"
+  },
+  "devDependencies": {
+    "concurrently": "^3.6.1"
   }
 }
