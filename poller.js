@@ -1,13 +1,23 @@
+/**
+ * Interaction with Twitter
+ */
+
 var twitter;
 var twitterStreamChannels;
 var TwitterStreamChannels = require('twitter-stream-channels');
 var twitterStreamChannels;
 
+/**
+ * Initialises necessary modules
+ */
 module.exports.initialise = function(_twitter, secrets) {
     twitter = _twitter;
     twitterStreamChannels = new TwitterStreamChannels(secrets);
 }
 
+/**
+ * Poll Twitter for trends
+ */
 module.exports.pollTrends = function (amount, callback) {
     twitter.get('trends/place', {id: '23424748'}, function(error, _trends, response) {
         console.log(_trends);
@@ -24,6 +34,9 @@ module.exports.pollTrends = function (amount, callback) {
     });
 }
 
+/**
+ * Streams Twitter for keywords in an array
+ */
 module.exports.pollStream = function(channels, callback) {
     const trackNames = channels.join(", ");
     console.log("Streaming for: "+trackNames);
@@ -39,9 +52,5 @@ module.exports.pollStream = function(channels, callback) {
         console.log(channel);
         callback(channel, tweet.text);
     });
-
-}
-
-module.exports.friendlyChannel = function(channel) {
 
 }

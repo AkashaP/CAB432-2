@@ -9,7 +9,7 @@ const zlib = require('zlib');
 // API Keys
 const secrets = require('./secrets.json');
 
-// API modules
+// API modules setup
 const Twitter = require('twitter');
 const twitter = new Twitter({
     consumer_key: secrets.consumer_key,
@@ -35,52 +35,25 @@ app.use(express.static(path.join(__dirname, 'public')));
 // App states
 const state = {trends:[], data: {}, raw: { labels:[], counts:[] }};
 
-// Instance and utility modules
-function createBaseGraphObject() {
-    return {
-        type: 'bar',
-        data: {
-            labels: [], // populate labels
-            datasets: [{
-                label: '# of Occurences',
-                data: [], // populate data
-                borderWidth: 1
-            }]
-        },
-        options: {
-            title: {
-                display: true,
-                text: 'Distribution of words tweeted about topic'
-            },
-            scales: {
-                yAxes: [{
-                    ticks: {
-                        beginAtZero:true
-                    }
-                }]
-            },
-            animation: {
-                duration: 0
-            }
-        }
-    };
-}
-
 const poller = require('./poller.js');
 const analysis = require('./analysis.js');
 poller.initialise(twitter, secrets);
 
 // Poll for top 10 trends
-doWork();
+trendRefresh();
 
+// Every so often, update the top trends
 if (process.argv.indexOf('-norepoll') !== -1)
     setInterval(function(){
-        doWork(); // I need to not poll very often
+        trendRefresh(); // I need to not poll very often
         // I need to poll for trends, then close the streams of things i no longer need. Not necessary for demo.
     }, 1000 * 1000);
 
 
-function doWork() {
+/**
+ * Polls for trends and then refreshes the state
+ */
+function trendRefresh() {
     poller.pollTrends(25, function(trends) {
         state.trends = trends;
 
@@ -111,12 +84,19 @@ function doWork() {
             // Perform analysis
             const nounsAnalysis = analysis.calculateOccurences(analysis.stripNouns(tweetText));
             const verbsAnalysis = analysis.calculateOccurences(analysis.stripVerbs(tweetText));
+
+            // Add to the state's counts
             combineCount(state.data[channel].nounGraph, nounsAnalysis);
             combineCount(state.data[channel].verbGraph, verbsAnalysis);
         });
     });
 }
 
+/**
+ * Combines the count of a graph's current data with new data
+ * @param graph the Chart.js graph instance
+ * @param instance the data to put into the Chart.js instance
+ */
 function combineCount(graph, instance) {
     if (instance === undefined || instance.labels === undefined || instance.data === undefined) {
         console.log(instance);
@@ -139,23 +119,30 @@ function combineCount(graph, instance) {
     }
 }
 
-var times = 0;
+/*var times = 0;
 setInterval(function(){
     times++;
     var _state = state;
     console.log(10 * times+" seconds in");
 }, 10000);
-if (process.argv.indexOf('-traffic') !== -1){generateTraffic();}
+if (process.argv.indexOf('-traffic') !== -1){generateTraffic();}*/
 
-function finaliseGraph(graphData) {
+/**
+ * Sorts graph by word counts
+ */
+function sortGraphs(graphData) {
     analysis.sortGraph(graphData.data.labels, graphData.data.datasets[0].data);
     graphData.data.labels = graphData.data.labels.slice(0, 30);
     graphData.data.datasets[0].data = graphData.data.datasets[0].data.slice(0, 30);
 }
 
-var mem = "";
 var cpu;
+
+/**
+ * Debug code to try and trigger scaling
+ */
 function generateTraffic() {
+    var mem = "";
     for(var i=0; i<= 1e5; i++) { // about 40 mb
         mem += ('Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.\n');
     }
@@ -172,6 +159,41 @@ function generateTraffic() {
         }
         //zlib.inflate(zlib.deflate(new Buffer(mem, 'utf-8')))
     }, 25000);
+}
+
+
+// Instance and utility modules
+/**
+ * Creates a template for a Graph.JS bar graph
+ */
+function createBaseGraphObject() {
+    return {
+        type: 'bar',
+        data: {
+            labels: [], // populate labels
+            datasets: [{
+                label: '# of Occurences',
+                data: [], // populate data
+                borderWidth: 1
+            }]
+        },
+        options: {
+            title: {
+                display: true,
+                text: 'Distribution of words tweeted about topic'
+            },
+            scales: {
+                yAxes: [{
+                    ticks: {
+                        beginAtZero:true
+                    }
+                }]
+            },
+            animation: {
+                duration: 0
+            }
+        }
+    };
 }
 
 // ---== Routing ==---
@@ -198,15 +220,6 @@ app.use('/api/trends', function(req,res,next) {
     }
 });
 
-app.use('/api/rawtrends', function(req,res,next) {
-    try {
-        console.log('Sending raw trends to client');
-        res.send(state.trends);
-    } catch (error) {
-        res.send(createError(400));
-    }
-});
-
 app.use('/api/state', function(req,res,next) {
     try {
         console.log('Sending state to client');
@@ -216,15 +229,18 @@ app.use('/api/state', function(req,res,next) {
     }
 });
 
+/**
+ * Main Data route
+ */
 app.use('/api/analysis', function(req,res,next) {
     try {
         console.log('client requests analysis of ' + req.query.id.toLowerCase());
-        if (req.query.id !== undefined && state.data[req.query.id.toLowerCase()] !== undefined) {
-            var element = state.data[req.query.id.toLowerCase()];
+        if (req.query.id !== undefined && req.query.id !== null && state.data[req.query.id.toLowerCase()] !== undefined && state.data[req.query.id.toLowerCase()] !== null) {
+            var element = state.data[req.query.id.toLowerCase().replace(/[^a-z0-9]/gi,'')];
             element = JSON.parse(JSON.stringify(element));
 
-            finaliseGraph(element.nounGraph);
-            finaliseGraph(element.verbGraph);
+            sortGraphs(element.nounGraph);
+            sortGraphs(element.verbGraph);
 
             // Reorder the data
 
