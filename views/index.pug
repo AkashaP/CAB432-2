@@ -20,13 +20,7 @@ block content
 					a#activetag.nav-link(href="javascript:navView(0)") Nouns
 				li.nav-item.active
 					a#activetag.nav-link(href="javascript:navView(1)") Verbs
-				// li.nav-item.active
-				// 	a#activetag.nav-link(href="javascript:navView(3)") News Nucleus
 		div#statistics
-			// div#moodarea.view
-			//	p.h3 Mood Meter
-			//	p.h5 How do people feel about topic?
-			//	canvas#moodmeter
 			div#vocabareanoun.view
 				p.h3 Vocab Visualiser (Nouns)
 				p.h5 What nouns do people associate about topic?
@@ -35,17 +29,14 @@ block content
 				p.h3 Vocab Visualiser (Verbs)
 				p.h5 What verbs do people associate about topic?
 				canvas#vocabVisualiserVerb
-			// div#newsarea.view
-			//	p.h3 Which countries are talking about topic in media?
-			//	canvas#newsNucleus
 
 	div#select.screen
-	
+
 		// Hash tag selection
-		
+
 		.h1 Select a trending hash
 		#trending
-			//a(href="javascript:navSubmitTag()") asdf
+
 		#selectcontrols
 			button.btn.btn-info(onclick="javascript:controlTrends()") Refresh
 	block post_scripts
